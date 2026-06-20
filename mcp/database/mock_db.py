@@ -1,5 +1,5 @@
 
-CLIENTES_DB = {
+CLIENTS_DB = {
     "123": {
         "nome": "João Silva",
         "segmento": "Personnalité",

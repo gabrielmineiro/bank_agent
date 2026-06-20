@@ -1,0 +1,90 @@
+import os
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from dotenv import load_dotenv
+from langchain_huggingface import ChatHuggingFace, HuggingFaceEndpoint
+from langchain_classic.agents import AgentExecutor, create_tool_calling_agent
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.messages import HumanMessage, AIMessage
+
+from mcp.agent_tools import create_tools_for_user
+from telemetry import ObservabilityCallbackHandler
+
+load_dotenv()
+
+def create_banking_agent(user_id: str, role: str):
+    """
+    Builds the agent configured with the Hugging Face public model.
+    """
+    tools = create_tools_for_user(user_id=user_id, role=role)
+    
+    llm_endpoint = HuggingFaceEndpoint(
+        repo_id="Qwen/Qwen2.5-7B-Instruct",
+        task="text-generation",
+        max_new_tokens=512,
+        do_sample=False,
+    )
+    
+    llm = ChatHuggingFace(llm=llm_endpoint)
+    
+    prompt = ChatPromptTemplate.from_messages([
+        ("system", """Você é o Agente Virtual Inteligente do Itaú.
+        Você é objetivo e cordial. Responda sempre em Português.
+        
+        PERFIL DO USUÁRIO LOGADO:
+        - ID: {user_id}
+        - Role: {role}
+        
+        REGRAS OBRIGATÓRIAS:
+        1. CONTEXTO DE DADOS: Todas as suas ações ocorrem no contexto do usuário autenticado acima.
+        2. OPERAÇÕES CRÍTICAS (PIX/Alteração de Limite): Você DEVE pedir confirmação explícita do usuário ANTES de acionar a ferramenta.
+        3. CONSULTAS A KNOWLEDGE BASE: Ao usar a base de conhecimento, você DEVE obrigatoriamente incluir a citação da [Fonte: arquivo.pdf, Página: X] no final da sua resposta, repassando exatamente a informação que a ferramenta lhe entregou.
+        4. SEGURANÇA: Se não tiver a ferramenta disponível para realizar a ação solicitada, responda exatamente com a frase: "Acesso negado."
+        """),
+        MessagesPlaceholder(variable_name="chat_history"),
+        ("human", "{input}"),
+        MessagesPlaceholder(variable_name="agent_scratchpad"),
+    ])
+    
+    agent = create_tool_calling_agent(llm, tools, prompt)
+    agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
+    
+    return agent_executor
+
+
+def run_interactive_test():
+    print("=== INICIANDO SESSÃO BANCÁRIA ===")
+    
+    logged_user_id = "123"
+    logged_role = "manager" 
+    
+    agent_instance = create_banking_agent(user_id=logged_user_id, role=logged_role)
+    monitor_telemetria = ObservabilityCallbackHandler()
+    chat_history_list = []
+    
+    while True:
+        question = input("\n👤 Prompt: ")
+        if question.lower() in ['sair', 'exit', 'quit']:
+            break
+            
+        print("🤖 Agente Processando...")
+        
+        response = agent_instance.invoke({
+            "input": question,
+            "chat_history": chat_history_list,
+            "user_id": logged_user_id,
+            "role": logged_role
+        }, 
+        config={"callbacks": [monitor_telemetria]}
+        )
+        
+        print(f"\n🏦 ItaúBot: {response['output']}")
+        
+        chat_history_list.extend([
+            HumanMessage(content=question),
+            AIMessage(content=response['output'])
+        ])
+
+if __name__ == "__main__":
+    run_interactive_test()

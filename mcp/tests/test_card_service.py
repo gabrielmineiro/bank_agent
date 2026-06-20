@@ -1,4 +1,5 @@
 import unittest
+
 from mcp.services.card_service import CardService
 
 class TestCardService(unittest.TestCase):

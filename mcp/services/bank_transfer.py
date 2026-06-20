@@ -1,8 +1,9 @@
 import json
 import uuid
 from datetime import datetime
-from mcp.database.mock_db import CLIENTES_DB
+
 from shared.logger import get_logger, base_extra_args
+from shared.audit import register_audit_log
 
 logger = get_logger(__name__)
 
@@ -17,18 +18,21 @@ class TransferService:
     def create_pix(self, customer_id: str, amount: float, destination_key: str) -> str:
         """Executa uma transferência PIX."""
         logger.info("Iniciando transferência PIX", extra={"extra": extra_args(customer_id, amount, destination_key)})
-        cliente = self.db.get(customer_id)
-        if not cliente:
+        client = self.db.get(customer_id)
+        if not client:
             logger.warning("Cliente não encontrado para PIX", extra={"extra": extra_args(customer_id, amount, destination_key)})
             return "Falha: Cliente não encontrado."
         
-        if cliente["saldo_conta"] < amount:
-            logger.warning("Saldo insuficiente para PIX", extra={"extra": extra_args(customer_id, amount, destination_key, {"saldo_conta": cliente["saldo_conta"]})})
-            return f"Falha: Saldo insuficiente. Saldo é R$ {cliente['saldo_conta']:.2f}."
+        if client["saldo_conta"] < amount:
+            logger.warning("Saldo insuficiente para PIX", extra={"extra": extra_args(customer_id, amount, destination_key, {"saldo_conta": client["saldo_conta"]})})
+            return f"Falha: Saldo insuficiente. Saldo é R$ {client['saldo_conta']:.2f}."
         
-        cliente["saldo_conta"] -= amount
+        client["saldo_conta"] -= amount
         transaction_id = str(uuid.uuid4())
-        logger.info("Transferência PIX realizada com sucesso", extra={"extra": extra_args(customer_id, amount, destination_key, {"transaction_id": transaction_id, "new_balance": cliente["saldo_conta"]})})
+        logger.info("Transferência PIX realizada com sucesso", extra={"extra": extra_args(customer_id, amount, destination_key, {"transaction_id": transaction_id, "new_balance": client["saldo_conta"]})})
+        
+        # Registra a transferência na trilha de auditoria
+        register_audit_log(user_id=customer_id, action="create_pix", amount=amount)
         
         return json.dumps({
             "status": "sucesso",
@@ -36,5 +40,5 @@ class TransferService:
             "amount": amount,
             "destination": destination_key,
             "timestamp": datetime.now().isoformat(),
-            "new_balance": cliente["saldo_conta"]
+            "new_balance": client["saldo_conta"]
         })
