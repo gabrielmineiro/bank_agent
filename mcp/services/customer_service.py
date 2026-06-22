@@ -18,13 +18,17 @@ class CustomerService:
         client = self.db.get(customer_id)
         if not client:
             logger.warning("Cliente não encontrado", extra={"extra": extra_args(customer_id, "get_profile")})
-            return json.dumps({"erro": "Cliente não encontrado."})
+            return json.dumps({"status": "error", "message": "Cliente não encontrado."})
         
         logger.info("Perfil de cliente retornado", extra={"extra": extra_args(customer_id, "get_profile")})
         return json.dumps({
-            "customer_id": customer_id,
-            "segment": client["segmento"],
-            "credit_score": client["credit_score"]
+            "status": "success",
+            "message": "Perfil retornado com sucesso.",
+            "data": {
+                "customer_id": customer_id,
+                "segment": client["segmento"],
+                "credit_score": client["credit_score"]
+            }
         })
 
     def get_balance(self, customer_id: str) -> str:
@@ -33,10 +37,14 @@ class CustomerService:
         client = self.db.get(customer_id)
         if not client:
             logger.warning("Cliente não encontrado", extra={"extra": extra_args(customer_id, "get_balance")})
-            return json.dumps({"erro": "Cliente não encontrado."})
+            return json.dumps({"status": "error", "message": "Cliente não encontrado."})
         
         logger.info("Saldo da conta retornado", extra={"extra": extra_args(customer_id, "get_balance")})
         return json.dumps({
-            "customer_id": customer_id,
-            "account_balance": client["saldo_conta"]
+            "status": "success",
+            "message": "Saldo retornado com sucesso.",
+            "data": {
+                "customer_id": customer_id,
+                "account_balance": client["saldo_conta"]
+            }
         })

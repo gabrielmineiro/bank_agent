@@ -1,3 +1,4 @@
+import json
 from shared.logger import get_logger, base_extra_args
 from shared.audit import register_audit_log
 
@@ -17,10 +18,14 @@ class CardService:
         client = self.db.get(customer_id)
         if not client:
             logger.warning("Cliente não encontrado ao consultar limite", extra={"extra": extra_args(customer_id, "get_limit")})
-            return "Cliente não encontrado."
+            return json.dumps({"status": "error", "message": "Cliente não encontrado."})
             
         logger.info("Limite consultado com sucesso", extra={"extra": extra_args(customer_id, "get_limit", {"limite_cartao": client['limite_cartao']})})
-        return f"O limite atual do cartão é R$ {client['limite_cartao']:.2f}"
+        return json.dumps({
+            "status": "success", 
+            "message": f"O limite atual do cartão é R$ {client['limite_cartao']:.2f}",
+            "data": {"limite_cartao": client['limite_cartao']}
+        })
 
     def update_limit(self, customer_id: str, new_limit: float) -> str:
         """Atualiza o limite do cartão de crédito do client."""
@@ -28,13 +33,20 @@ class CardService:
         client = self.db.get(customer_id)
         if not client:
             logger.warning("Cliente não encontrado ao atualizar limite", extra={"extra": extra_args(customer_id, "update_limit")})
-            return "Falha: Cliente não encontrado."
+            return json.dumps({"status": "error", "message": "Falha: Cliente não encontrado."})
         
+        confirm = input("   Confirmar Alteração de limite? [sim/não]: ").strip().lower()
+        if confirm not in ("sim", "s", "yes"):
+            return json.dumps({"status": "error", "message": "Alteração de limite cancelada pelo usuário."})
+
         old_limit = client["limite_cartao"]
         client["limite_cartao"] = new_limit
         logger.info("Limite atualizado com sucesso", extra={"extra": extra_args(customer_id, "update_limit", {"old_limit": old_limit, "new_limit": new_limit})})
         
-        # Registra a alteração de limite na trilha de auditoria
         register_audit_log(user_id=customer_id, action="update_limit", amount=new_limit)
         
-        return f"Sucesso: Limite atualizado para R$ {new_limit:.2f}."
+        return json.dumps({
+            "status": "success", 
+            "message": f"Sucesso: Limite atualizado para R$ {new_limit:.2f}.",
+            "data": {"new_limit": new_limit}
+        })

@@ -20,8 +20,10 @@ PRIVILEGED_TOOLS = [
         "func": _get_customer_profile,
         "name": "get_customer_profile",
         "description": (
-            "Consulta o perfil de um cliente no sistema do banco. "
-            "Usar para checar segmento e score. Disponível apenas para managers e admins."
+            "Consulta o perfil completo de um cliente no sistema do banco (segmento e credit score). "
+            "USE ESTA FERRAMENTA quando precisar: 'ver perfil do cliente', "
+            "'checar segmento', 'verificar score de crédito'. "
+            "Requer o customer_id. Disponível apenas para managers e admins."
         ),
         "auth": False,
     },
@@ -29,8 +31,10 @@ PRIVILEGED_TOOLS = [
         "func": _update_card_limit,
         "name": "update_card_limit",
         "description": (
-            "Atualiza o limite do cartão de crédito do cliente. "
-            "Exige validação prévia. Disponível apenas para managers e admins."
+            "Atualiza o limite do cartão de crédito de um cliente. "
+            "USE ESTA FERRAMENTA quando solicitarem: 'alterar limite', "
+            "'aumentar limite do cartão', 'reduzir limite'. "
+            "Requer customer_id e new_limit. Disponível apenas para managers e admins."
         ),
         "auth": False,
     },

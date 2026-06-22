@@ -1,8 +1,4 @@
 import os
-import sys
-
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from dotenv import load_dotenv
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -104,6 +100,6 @@ def search(query: str) -> str:
         
 
 if __name__ == "__main__":
-    #_create_vector_store()
-    #search("Qual a taxa de empréstimo consignado?")
-    pass
+    _create_vector_store()
+    #search("Como eu faço para abrir um cartão de crédito?")
+    

@@ -32,46 +32,53 @@ def _search_knowledge_base(query: str) -> str:
     return search(query)
 
 
-def _get_customer_profile(customer_id: str) -> str:
-    """Consulta o perfil completo de um cliente (segmento e score)."""
-    return customer_svc.get_profile(customer_id)
-
-
-def _update_card_limit(customer_id: str, new_limit: float) -> str:
-    """Atualiza o limite do cartão de crédito de um cliente."""
-    return card_svc.update_limit(customer_id, new_limit)
-
-
 
 BASE_TOOLS = [
     {
         "func": _get_account_balance,
         "name": "get_account_balance",
         "description": (
-            "Consulta o saldo atual da conta corrente do cliente. "
-            "Use isso quando ele perguntar quanto dinheiro tem na conta."
+            "Consulta o saldo atual da conta corrente de um cliente no sistema bancário. "
+            "USE ESTA FERRAMENTA quando o usuário perguntar: 'qual meu saldo?', "
+            "'quanto tenho na conta?', 'qual o saldo disponível?'. "
+            "Requer o customer_id do cliente."
         ),
         "auth": True,
     },
     {
         "func": _get_card_limit,
         "name": "get_card_limit",
-        "description": "Consulta o limite atual do cartão de crédito do cliente.",
+        "description": (
+            "Consulta o limite atual do cartão de crédito de um cliente. "
+            "USE ESTA FERRAMENTA quando o usuário perguntar: 'qual meu limite?', "
+            "'quanto de limite eu tenho?', 'limite do cartão'. "
+            "Requer o customer_id do cliente."
+        ),
         "auth": True,
     },
     {
         "func": _create_pix,
         "name": "create_pix",
-        "description": "Executa uma transferência PIX da conta do cliente para uma chave destino.",
+        "description": (
+            "Executa uma transferência PIX da conta do cliente para uma chave destino. "
+            "USE ESTA FERRAMENTA quando o usuário quiser: 'fazer um PIX', "
+            "'transferir dinheiro', 'enviar valor para alguém'. "
+            "Requer customer_id, amount (valor) e destination_key (chave PIX destino)."
+        ),
         "auth": True,
     },
     {
         "func": _search_knowledge_base,
         "name": "search_knowledge_base",
         "description": (
-            "ÚTIL SEMPRE que o usuário fizer perguntas gerais sobre taxas, regras, tarifas, "
-            "empréstimos, regulamentos ou dúvidas institucionais do banco. "
-            "Passe a dúvida do usuário como query."
+            "OBRIGATÓRIO: Consulta a base de conhecimento oficial do banco. "
+            "Você DEVE usar esta ferramenta SEMPRE que o usuário perguntar sobre: "
+            "taxas de juros, empréstimos, empréstimo consignado, crédito pessoal, "
+            "financiamento, tarifas, regulamentos, regras do banco, seguros, "
+            "investimentos, previdência, consórcio, capitalização, aposentados, "
+            "ou QUALQUER dúvida sobre produtos, serviços e políticas do banco. "
+            "NUNCA responda essas perguntas de memória — sempre consulte esta ferramenta primeiro. "
+            "Passe a pergunta completa do usuário como query."
         ),
         "auth": False,
     },
