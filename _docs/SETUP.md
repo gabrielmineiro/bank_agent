@@ -80,10 +80,9 @@ cp .env.example .env
 Abra o arquivo `.env` e preencha os valores:
 
 ```env
-# Caso não tenha, para fins de desenvolvimento, pode deixo a minha temporariamente aqui: 
-# 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
+# API KEY do Hugging Face. (enviada por email)
 
-HUGGINGFACEHUB_API_TOKEN=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
+HUGGINGFACEHUB_API_TOKEN=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
 # Modelo de embeddings a ser usado para a base de conhecimento (RAG)
 # Exemplo: all-MiniLM-L6-v2
