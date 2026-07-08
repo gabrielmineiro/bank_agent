@@ -13,4 +13,6 @@ langgraph-sdk==0.4.2
 langsmith==0.8.18
 sentence-transformers==5.6.0
 
+langfuse==4.0.1
+
 python-dotenv>=1.0,<2

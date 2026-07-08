@@ -3,11 +3,14 @@ from langchain_huggingface import ChatHuggingFace, HuggingFaceEndpoint
 from langchain_classic.agents import AgentExecutor, create_tool_calling_agent
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.messages import HumanMessage, AIMessage
+from langfuse import get_client, propagate_attributes
 
 from mcp.agent_tools import create_tools_for_user
 from agent.telemetry import ObservabilityCallbackHandler
 
 load_dotenv()
+
+langfuse_client = get_client()
 
 def create_banking_agent(user_id: str, role: str):
     """
@@ -61,31 +64,62 @@ def run_interactive_test():
         return
     
     agent_instance = create_banking_agent(user_id=logged_user_id, role=logged_role)
-    monitor_telemetria = ObservabilityCallbackHandler()
     chat_history_list = []
     
-    while True:
-        question = input("\n👤 Prompt: ")
-        if question.lower() in ['sair', 'exit', 'quit']:
-            break
+    with propagate_attributes(
+        user_id=logged_user_id,
+        metadata={"role": logged_role},
+        tags=["Qwen/Qwen2.5-7B-Instruct"],
+        trace_name="Banking Session"
+    ):
+        with langfuse_client.start_as_current_observation(
+            name="Banking Session",
+            as_type="span"
+        ) as root_span:
             
-        print("🤖 Agente Processando...")
-        
-        response = agent_instance.invoke({
-            "input": question,
-            "chat_history": chat_history_list,
-            "user_id": logged_user_id,
-            "role": logged_role
-        }, 
-        config={"callbacks": [monitor_telemetria]}
-        )
-        
-        print(f"\n🏦 ItaúBot: {response['output']}")
-        
-        chat_history_list.extend([
-            HumanMessage(content=question),
-            AIMessage(content=response['output'])
-        ])
+            while True:
+                question = input("\n👤 Prompt: ")
+                if question.lower() in ['sair', 'exit', 'quit']:
+                    break
+                    
+                print("🤖 Agente Processando...")
+                
+                root_span.create_event(
+                    name="User Input Received",
+                    input={"question": question}
+                )
+                
+                with root_span.start_as_current_observation(
+                    name="Agent Processing",
+                    as_type="span",
+                    input={"question": question, "chat_history": str(chat_history_list)}
+                ) as span:
+                    
+                    response = agent_instance.invoke({
+                        "input": question,
+                        "chat_history": chat_history_list,
+                        "user_id": logged_user_id,
+                        "role": logged_role
+                    })
+                    
+                    with span.start_as_current_observation(
+                        name="Agent Response",
+                        as_type="generation",
+                        model="Qwen2.5-7B-Instruct",
+                        input={"question": question, "chat_history": str(chat_history_list)}
+                    ) as generation:
+                        generation.update(output=response['output'])
+                        
+                    span.update(output=response['output'])
+            
+                print(f"\n🏦 ItaúBot: {response['output']}")
+                
+                chat_history_list.extend([
+                    HumanMessage(content=question),
+                    AIMessage(content=response['output'])
+                ])
+            
+    langfuse_client.flush()
 
 if __name__ == "__main__":
     run_interactive_test()
